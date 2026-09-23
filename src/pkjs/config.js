@@ -35,7 +35,13 @@ module.exports = [
     "items": [
       {
         "type": "heading",
-        "defaultValue": "Infozeile"
+        "defaultValue": "Anzeige"
+      },
+      {
+        "type": "toggle",
+        "messageKey": "ShowEsIst",
+        "label": "\"ES IST\" anzeigen",
+        "defaultValue": false
       },
       {
         "type": "toggle",
@@ -55,6 +61,13 @@ module.exports = [
         "messageKey": "Fahrenheit",
         "label": "Temperatur in °F",
         "defaultValue": false
+      },
+      {
+        "type": "toggle",
+        "messageKey": "InfoGridStyle",
+        "label": "Datum/Temperatur im Buchstabenraster",
+        "description": "Ein Zeichen pro Feld mit Füllbuchstaben dazwischen, wie der Rest der Uhr. Aus: normale Textzeile.",
+        "defaultValue": true
       }
     ]
   },

@@ -15,11 +15,9 @@
     "targetPlatforms": [
       "aplite",
       "basalt",
-      "chalk",
       "diorite",
       "emery",
-      "flint",
-      "gabbro"
+      "flint"
     ],
     "watchapp": {
       "watchface": true
@@ -32,7 +30,9 @@
       "ShowTemp",
       "Fahrenheit",
       "Temperature",
-      "RequestWeather"
+      "RequestWeather",
+      "ShowEsIst",
+      "InfoGridStyle"
     ],
     "resources": {
       "media": []

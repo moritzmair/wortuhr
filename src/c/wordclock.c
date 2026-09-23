@@ -14,6 +14,9 @@ const char * const wc_grid[WC_ROWS][WC_COLS] = {
   {"Z","E","H","N","E","U","N","K","U","H","R"},
 };
 
+const char * const wc_es_ist_row[WC_COLS] =
+  {"E","S","K","I","S","T","L","A","U","N","E"};
+
 // Markiert ein Wort: Zeile, Start- und Endspalte (beide inklusive).
 static void light(bool on[WC_ROWS][WC_COLS], int row, int from, int to) {
   for (int c = from; c <= to; c++) {

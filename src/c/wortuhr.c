@@ -13,6 +13,10 @@ typedef struct {
   bool show_date;
   bool show_temp;
   bool fahrenheit;
+  // Neue Felder nur hinten anhängen: ältere gespeicherte Einstellungen sind kürzer,
+  // die fehlenden Felder behalten dann ihren Default.
+  bool show_es_ist;
+  bool info_grid_style;
 } Settings;
 
 static Settings s_settings;
@@ -32,6 +36,8 @@ static void default_settings(void) {
   s_settings.show_date = false;
   s_settings.show_temp = false;
   s_settings.fahrenheit = false;
+  s_settings.show_es_ist = false;
+  s_settings.info_grid_style = true;
 }
 
 static void load_settings(void) {
@@ -60,28 +66,119 @@ static void request_weather(void) {
   app_message_outbox_send();
 }
 
-static void draw_info_row(GContext *ctx, GRect row) {
+typedef struct {
+  GRect origin;   // erste Zelle der Zeile
+  int cell_w;
+  int cell_h;
+} GridRow;
+
+static void draw_cell(GContext *ctx, const GridRow *row, int col, const char *text, bool on) {
+  graphics_context_set_text_color(ctx, on ? s_settings.highlight : s_settings.text);
+  GRect cell = GRect(row->origin.origin.x + col * row->cell_w, row->origin.origin.y,
+                     row->cell_w, row->cell_h);
+  graphics_draw_text(ctx, text, s_font, cell,
+                     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+}
+
+// Schreibt die Zeichen von `text` ab Spalte `col` als leuchtende Zellen; "°" wird angehängt,
+// wenn `degree` gesetzt ist. Gibt die nächste freie Spalte zurück.
+static int put_cells(char cells[WC_COLS][4], bool on[WC_COLS], int col, const char *text,
+                     bool degree) {
+  for (const char *p = text; *p && col < WC_COLS; p++, col++) {
+    cells[col][0] = *p;
+    cells[col][1] = '\0';
+    on[col] = true;
+  }
+  if (degree && col < WC_COLS) {
+    strcpy(cells[col], "°");
+    on[col] = true;
+    col++;
+  }
+  return col;
+}
+
+// Datum und Temperatur im Wortuhr-Stil: ein Zeichen pro Zelle, dazwischen
+// ausgegraute Füllbuchstaben wie im restlichen Raster.
+static void draw_info_row_grid(GContext *ctx, const GridRow *row,
+                               const char *weekday, const char *date, const char *temp) {
+  static const char filler[] = "PQXYJKVZWRM";
+  char cells[WC_COLS][4];
+  bool on[WC_COLS] = {false};
+  for (int c = 0; c < WC_COLS; c++) {
+    cells[c][0] = filler[c];
+    cells[c][1] = '\0';
+  }
+
+  int date_len = strlen(date);
+  int temp_len = temp[0] ? (int)strlen(temp) + 1 : 0;   // + Gradzeichen
+  // Wochentag nur, wenn mit je einer Füllzelle Abstand alles in die Zeile passt.
+  bool with_weekday = date_len &&
+      2 + 1 + date_len + (temp_len ? 1 + temp_len : 0) <= WC_COLS;
+  int left_len = date_len ? date_len + (with_weekday ? 3 : 0) : 0;
+
+  if (left_len && temp_len) {
+    int col = 0;
+    if (with_weekday) {
+      col = put_cells(cells, on, col, weekday, false) + 1;
+    }
+    put_cells(cells, on, col, date, false);
+    put_cells(cells, on, WC_COLS - temp_len, temp, true);
+  } else if (left_len) {
+    int col = (WC_COLS - left_len) / 2;
+    if (with_weekday) {
+      col = put_cells(cells, on, col, weekday, false) + 1;
+    }
+    put_cells(cells, on, col, date, false);
+  } else {
+    put_cells(cells, on, (WC_COLS - temp_len) / 2, temp, true);
+  }
+
+  for (int c = 0; c < WC_COLS; c++) {
+    draw_cell(ctx, row, c, cells[c], on[c]);
+  }
+}
+
+static void draw_info_row(GContext *ctx, const GridRow *row) {
   static const char * const weekdays[] = {"SO", "MO", "DI", "MI", "DO", "FR", "SA"};
-  char date[16] = "";
+  const char *weekday = "";
+  char day_month[24] = "";
   char temp[8] = "";
 
   if (s_settings.show_date) {
     time_t now = time(NULL);
     struct tm *t = localtime(&now);
-    snprintf(date, sizeof(date), "%s %d.%d.", weekdays[t->tm_wday], t->tm_mday, t->tm_mon + 1);
+    weekday = weekdays[t->tm_wday];
+    snprintf(day_month, sizeof(day_month), "%d.%d", t->tm_mday, t->tm_mon + 1);
   }
   if (s_settings.show_temp && s_has_temp) {
-    snprintf(temp, sizeof(temp), "%d°", s_temp);
+    snprintf(temp, sizeof(temp), "%d", s_temp);
   }
+
+  if (s_settings.info_grid_style) {
+    draw_info_row_grid(ctx, row, weekday, day_month, temp);
+    return;
+  }
+
+  // Fließtext, innerhalb der äußeren Buchstabenspalten, damit er bündig mit dem Raster ist.
+  char date[32] = "";
+  if (day_month[0]) {
+    snprintf(date, sizeof(date), "%s %s.", weekday, day_month);
+  }
+  if (temp[0]) {
+    strcat(temp, "°");
+  }
+  int inset = row->cell_w / 4;
+  GRect text_row = GRect(row->origin.origin.x + inset, row->origin.origin.y,
+                         row->cell_w * WC_COLS - 2 * inset, row->cell_h);
 
   graphics_context_set_text_color(ctx, s_settings.highlight);
   if (date[0] && temp[0]) {
-    graphics_draw_text(ctx, date, s_font, row, GTextOverflowModeTrailingEllipsis,
+    graphics_draw_text(ctx, date, s_font, text_row, GTextOverflowModeTrailingEllipsis,
                        GTextAlignmentLeft, NULL);
-    graphics_draw_text(ctx, temp, s_font, row, GTextOverflowModeTrailingEllipsis,
+    graphics_draw_text(ctx, temp, s_font, text_row, GTextOverflowModeTrailingEllipsis,
                        GTextAlignmentRight, NULL);
   } else {
-    graphics_draw_text(ctx, date[0] ? date : temp, s_font, row,
+    graphics_draw_text(ctx, date[0] ? date : temp, s_font, text_row,
                        GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
   }
 }
@@ -92,10 +189,11 @@ static void grid_update_proc(Layer *layer, GContext *ctx) {
   graphics_context_set_fill_color(ctx, s_settings.background);
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
 
-  // Die Infozeile ersetzt die frühere "ES IST"-Zeile; ohne sie verteilt sich das Raster
-  // auf die volle Höhe.
+  // Infozeile und "ES IST" sind optional; ohne sie verteilt sich das Raster auf die
+  // volle Höhe.
   bool info = info_row_visible();
-  int rows = WC_ROWS + (info ? 1 : 0);
+  bool es_ist = s_settings.show_es_ist;
+  int rows = WC_ROWS + (info ? 1 : 0) + (es_ist ? 1 : 0);
   int cell_w = bounds.size.w / WC_COLS;
   int cell_h = bounds.size.h / rows;
   int pad_x = (bounds.size.w - cell_w * WC_COLS) / 2;
@@ -104,21 +202,26 @@ static void grid_update_proc(Layer *layer, GContext *ctx) {
   // graphics_draw_text setzt oberhalb der Glyphe Luft an; die ziehen wir wieder ab.
   int text_dy = (cell_h - s_font_height) / 2 - 3;
 
+  GridRow row = { GRect(pad_x, pad_y + text_dy, 0, 0), cell_w, cell_h };
+
   if (info) {
-    // Innerhalb der äußeren Buchstabenspalten, damit die Zeile bündig mit dem Raster ist.
-    int inset = cell_w / 4;
-    draw_info_row(ctx, GRect(pad_x + inset, pad_y + text_dy,
-                             cell_w * WC_COLS - 2 * inset, cell_h));
-    pad_y += cell_h;
+    draw_info_row(ctx, &row);
+    row.origin.origin.y += cell_h;
+  }
+
+  if (es_ist) {
+    for (int c = 0; c < WC_COLS; c++) {
+      bool on = (c >= WC_ES_FROM && c <= WC_ES_TO) || (c >= WC_IST_FROM && c <= WC_IST_TO);
+      draw_cell(ctx, &row, c, wc_es_ist_row[c], on);
+    }
+    row.origin.origin.y += cell_h;
   }
 
   for (int r = 0; r < WC_ROWS; r++) {
     for (int c = 0; c < WC_COLS; c++) {
-      graphics_context_set_text_color(ctx, s_on[r][c] ? s_settings.highlight : s_settings.text);
-      GRect cell = GRect(pad_x + c * cell_w, pad_y + r * cell_h + text_dy, cell_w, cell_h);
-      graphics_draw_text(ctx, wc_grid[r][c], s_font, cell,
-                         GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+      draw_cell(ctx, &row, c, wc_grid[r][c], s_on[r][c]);
     }
+    row.origin.origin.y += cell_h;
   }
 }
 
@@ -152,6 +255,14 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
   }
   if ((t = dict_find(iter, MESSAGE_KEY_HighlightColor))) {
     s_settings.highlight = GColorFromHEX(t->value->int32);
+    settings_changed = true;
+  }
+  if ((t = dict_find(iter, MESSAGE_KEY_ShowEsIst))) {
+    s_settings.show_es_ist = t->value->int32 == 1;
+    settings_changed = true;
+  }
+  if ((t = dict_find(iter, MESSAGE_KEY_InfoGridStyle))) {
+    s_settings.info_grid_style = t->value->int32 == 1;
     settings_changed = true;
   }
   if ((t = dict_find(iter, MESSAGE_KEY_ShowDate))) {

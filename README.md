@@ -39,7 +39,7 @@ Die Temperatur holt das Handy alle 30 Minuten über seinen Standort von
 - `src/pkjs/index.js` — Handy-Seite: Einstellungsseite und Wetterabfrage.
 - `src/pkjs/config.js` — Aufbau der Einstellungsseite.
 - `src/pkjs/clay.js` — [Clay](https://github.com/pebble/clay) 1.0.4, eingebettet statt per npm,
-  weil das npm-Paket flint und gabbro nicht als Plattform kennt (und dort den Build abbricht).
+  weil das npm-Paket flint nicht als Plattform kennt (und dort den Build abbricht).
   Angepasst: flint bekommt wie aplite/diorite den Schwarzweiß-Farbwähler.
 
 ## Bauen & testen
@@ -48,8 +48,13 @@ Die Temperatur holt das Handy alle 30 Minuten über seinen Standort von
     pebble install --emulator emery     # emery = Pebble Time 2
     pebble screenshot --emulator emery shot.png
 
-Andere Plattformen: `basalt` (Pebble Time), `diorite` (Pebble 2 / Pebble 2 Duo),
-`chalk` (Pebble Time Round), `aplite` (Pebble Classic).
+Andere Plattformen: `basalt` (Pebble Time), `diorite` (Pebble 2), `flint` (Pebble 2 Duo),
+`aplite` (Pebble Classic). Runde Uhren (`chalk`, `gabbro`) werden bewusst nicht
+unterstützt – das rechteckige Buchstabenraster passt nicht ins runde Display.
+
+Vorschaubilder für den Store (landen in `store/<plattform>/`):
+
+    python3 scripts/store_screenshots.py
 
 Logik gegen alle 288 Fünf-Minuten-Schritte prüfen:
 
