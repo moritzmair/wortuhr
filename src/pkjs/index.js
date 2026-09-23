@@ -1,7 +1,34 @@
 var Clay = require('./clay');
-var clayConfig = require('./config');
+var buildConfig = require('./config');
 var clayCustom = require('./config-custom');
-var clay = new Clay(clayConfig, clayCustom);
+var clay = new Clay(buildConfig('de'), clayCustom, { autoHandleEvents: false });
+
+// Sprache der Einstellungsseite: die fürs Watchface gewählte, sonst die der Uhr.
+function configLanguage() {
+  try {
+    var saved = JSON.parse(localStorage.getItem('clay-settings') || '{}').Language;
+    if (saved !== undefined) {
+      return String(saved) === '0' ? 'de' : 'en';
+    }
+  } catch (e) {}
+  var info = Pebble.getActiveWatchInfo && Pebble.getActiveWatchInfo();
+  var locale = (info && info.language) || navigator.language || '';
+  return locale.indexOf('de') === 0 ? 'de' : 'en';
+}
+
+Pebble.addEventListener('showConfiguration', function() {
+  clay.config = buildConfig(configLanguage());
+  Pebble.openURL(clay.generateUrl());
+});
+
+Pebble.addEventListener('webviewclosed', function(e) {
+  if (!e || !e.response) {
+    return;
+  }
+  Pebble.sendAppMessage(clay.getSettings(e.response), null, function(err) {
+    console.log('Einstellungen nicht gesendet: ' + JSON.stringify(err));
+  });
+});
 
 function fetchWeather(fahrenheit) {
   navigator.geolocation.getCurrentPosition(function(pos) {

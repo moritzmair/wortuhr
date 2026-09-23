@@ -48,6 +48,18 @@ VARIANTS = [
         info_background="PBL_IF_COLOR_ELSE(GColorDarkCandyAppleRed, GColorBlack)",
         info_text="GColorWhite",
         info_line="PBL_IF_COLOR_ELSE(GColorChromeYellow, GColorBlack)")),
+    ("6_english", "10:25:00", dict(
+        background="GColorWhite",
+        text="PBL_IF_COLOR_ELSE(GColorLightGray, GColorWhite)",
+        highlight="GColorBlack",
+        show_date="false", show_temp="false", show_es_ist="true", info_grid_style="true",
+        language="WC_LANG_EN")),
+    ("7_english_farbig", "18:45:00", dict(
+        background="PBL_IF_COLOR_ELSE(GColorImperialPurple, GColorBlack)",
+        text="PBL_IF_COLOR_ELSE(GColorPurple, GColorBlack)",
+        highlight="PBL_IF_COLOR_ELSE(GColorMelon, GColorWhite)",
+        show_date="true", show_temp="true", show_es_ist="true", info_grid_style="true",
+        language="WC_LANG_EN")),
 ]
 
 # Felder, die eine Variante nicht setzt
@@ -56,6 +68,7 @@ BASE = dict(
     info_background="GColorBlack",
     info_text="GColorWhite",
     info_line="PBL_IF_COLOR_ELSE(GColorLightGray, GColorWhite)",
+    language="WC_LANG_DE",
 )
 
 

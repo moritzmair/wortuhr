@@ -36,7 +36,8 @@
       "InfoCustomColors",
       "InfoBackgroundColor",
       "InfoTextColor",
-      "InfoLineColor"
+      "InfoLineColor",
+      "Language"
     ],
     "resources": {
       "media": []

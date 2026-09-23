@@ -23,6 +23,7 @@ typedef struct {
   GColor info_background;
   GColor info_text;
   GColor info_line;
+  uint8_t language;   // WcLang
 } Settings;
 
 static Settings s_settings;
@@ -48,6 +49,8 @@ static void default_settings(void) {
   s_settings.info_background = GColorBlack;
   s_settings.info_text = GColorWhite;
   s_settings.info_line = PBL_IF_COLOR_ELSE(GColorLightGray, GColorWhite);
+  // Ohne Einstellung die Sprache der Uhr: Deutsch bei "de_*", sonst Englisch.
+  s_settings.language = strncmp(i18n_get_system_locale(), "de", 2) == 0 ? WC_LANG_DE : WC_LANG_EN;
 }
 
 static void load_settings(void) {
@@ -150,7 +153,10 @@ static void draw_info_row_grid(GContext *ctx, const GridRow *row,
 
 // `bar` ist der Bereich vom oberen Rand bis zur Unterkante der Infozeile.
 static void draw_info_row(GContext *ctx, const GridRow *row, GRect bar) {
-  static const char * const weekdays[] = {"SO", "MO", "DI", "MI", "DO", "FR", "SA"};
+  static const char * const weekdays_de[] = {"SO", "MO", "DI", "MI", "DO", "FR", "SA"};
+  static const char * const weekdays_en[] = {"SU", "MO", "TU", "WE", "TH", "FR", "SA"};
+  static const char * const weekdays_en_long[] = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
+  bool en = s_settings.language == WC_LANG_EN;
   const char *weekday = "";
   char day_month[24] = "";
   char temp[8] = "";
@@ -158,8 +164,14 @@ static void draw_info_row(GContext *ctx, const GridRow *row, GRect bar) {
   if (s_settings.show_date) {
     time_t now = time(NULL);
     struct tm *t = localtime(&now);
-    weekday = weekdays[t->tm_wday];
-    snprintf(day_month, sizeof(day_month), "%d.%d", t->tm_mday, t->tm_mon + 1);
+    // Im Raster ist nur Platz für zwei Buchstaben, in der Textzeile auch für drei.
+    weekday = en ? (s_settings.info_grid_style ? weekdays_en : weekdays_en_long)[t->tm_wday]
+                 : weekdays_de[t->tm_wday];
+    if (en) {
+      snprintf(day_month, sizeof(day_month), "%d/%d", t->tm_mon + 1, t->tm_mday);
+    } else {
+      snprintf(day_month, sizeof(day_month), "%d.%d", t->tm_mday, t->tm_mon + 1);
+    }
   }
   if (s_settings.show_temp && s_has_temp) {
     snprintf(temp, sizeof(temp), "%d", s_temp);
@@ -188,7 +200,7 @@ static void draw_info_row(GContext *ctx, const GridRow *row, GRect bar) {
   // Text innerhalb der äußeren Buchstabenspalten, damit er bündig mit dem Raster ist.
   char date[32] = "";
   if (day_month[0]) {
-    snprintf(date, sizeof(date), "%s %s.", weekday, day_month);
+    snprintf(date, sizeof(date), en ? "%s %s" : "%s %s.", weekday, day_month);
   }
   if (temp[0]) {
     strcat(temp, "°");
@@ -238,24 +250,28 @@ static void grid_update_proc(Layer *layer, GContext *ctx) {
     row.origin.origin.y += cell_h;
   }
 
+  WcLang lang = s_settings.language;
   if (es_ist) {
+    const char * const *header = wc_header(lang);
+    bool on[WC_COLS];
+    wc_header_on(lang, on);
     for (int c = 0; c < WC_COLS; c++) {
-      bool on = (c >= WC_ES_FROM && c <= WC_ES_TO) || (c >= WC_IST_FROM && c <= WC_IST_TO);
-      draw_cell(ctx, &row, c, wc_es_ist_row[c], on);
+      draw_cell(ctx, &row, c, header[c], on[c]);
     }
     row.origin.origin.y += cell_h;
   }
 
+  const WcRow *grid = wc_grid(lang);
   for (int r = 0; r < WC_ROWS; r++) {
     for (int c = 0; c < WC_COLS; c++) {
-      draw_cell(ctx, &row, c, wc_grid[r][c], s_on[r][c]);
+      draw_cell(ctx, &row, c, grid[r][c], s_on[r][c]);
     }
     row.origin.origin.y += cell_h;
   }
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  wc_compute(tick_time->tm_hour, tick_time->tm_min, s_on);
+  wc_compute(s_settings.language, tick_time->tm_hour, tick_time->tm_min, s_on);
   layer_mark_dirty(s_grid_layer);
   if (tick_time->tm_min % WEATHER_INTERVAL_MIN == 0) {
     request_weather();
@@ -284,6 +300,15 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
   }
   if ((t = dict_find(iter, MESSAGE_KEY_HighlightColor))) {
     s_settings.highlight = GColorFromHEX(t->value->int32);
+    settings_changed = true;
+  }
+  if ((t = dict_find(iter, MESSAGE_KEY_Language))) {
+    // Clay schickt die Auswahl als String ("0"/"1")
+    int lang = t->type == TUPLE_CSTRING ? atoi(t->value->cstring) : (int)t->value->int32;
+    s_settings.language = lang == WC_LANG_EN ? WC_LANG_EN : WC_LANG_DE;
+    time_t now = time(NULL);
+    struct tm *tm_now = localtime(&now);
+    wc_compute(s_settings.language, tm_now->tm_hour, tm_now->tm_min, s_on);
     settings_changed = true;
   }
   if ((t = dict_find(iter, MESSAGE_KEY_ShowEsIst))) {
@@ -364,7 +389,7 @@ static void window_load(Window *window) {
 
   time_t now = time(NULL);
   struct tm *t = localtime(&now);
-  wc_compute(t->tm_hour, t->tm_min, s_on);
+  wc_compute(s_settings.language, t->tm_hour, t->tm_min, s_on);
 }
 
 static void window_unload(Window *window) {

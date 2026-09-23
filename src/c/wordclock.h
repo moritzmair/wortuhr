@@ -5,16 +5,20 @@
 #define WC_COLS 11
 #define WC_ROWS 9
 
-// Deutsches Wortuhr-Raster (QLOCKTWO-Layout, ohne die "ES IST"-Zeile).
-// Jede Zelle ist ein eigener String, damit Umlaute (2 Byte in UTF-8) sauber bleiben.
-extern const char * const wc_grid[WC_ROWS][WC_COLS];
+typedef enum {
+  WC_LANG_DE = 0,
+  WC_LANG_EN = 1,
+} WcLang;
 
-// Optionale Kopfzeile "ES IST" im selben Raster; die übrigen Buchstaben sind Füller.
-extern const char * const wc_es_ist_row[WC_COLS];
-#define WC_ES_FROM 0
-#define WC_ES_TO 1
-#define WC_IST_FROM 3
-#define WC_IST_TO 5
+typedef const char * const WcRow[WC_COLS];
+
+// Buchstabenraster (QLOCKTWO-Layout ohne die "ES IST"/"IT IS"-Zeile).
+// Jede Zelle ist ein eigener String, damit Umlaute (2 Byte in UTF-8) sauber bleiben.
+const WcRow *wc_grid(WcLang lang);
+
+// Optionale Kopfzeile "ES IST" bzw. "IT IS"; die übrigen Buchstaben sind Füller.
+const char * const *wc_header(WcLang lang);
+void wc_header_on(WcLang lang, bool on[WC_COLS]);
 
 // Setzt in `on` genau die Buchstaben auf true, die den Satz zur Zeit hour:minute bilden.
-void wc_compute(int hour, int minute, bool on[WC_ROWS][WC_COLS]);
+void wc_compute(WcLang lang, int hour, int minute, bool on[WC_ROWS][WC_COLS]);
