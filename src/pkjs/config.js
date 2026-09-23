@@ -72,6 +72,41 @@ module.exports = [
     ]
   },
   {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "id": "InfoColorsHeading",
+        "defaultValue": "Farben der Textzeile"
+      },
+      {
+        "type": "toggle",
+        "messageKey": "InfoCustomColors",
+        "label": "Eigene Farben",
+        "description": "Aus: Die Zeile ist automatisch invertiert zum Raster.",
+        "defaultValue": false
+      },
+      {
+        "type": "color",
+        "messageKey": "InfoBackgroundColor",
+        "defaultValue": "000000",
+        "label": "Hintergrund"
+      },
+      {
+        "type": "color",
+        "messageKey": "InfoTextColor",
+        "defaultValue": "FFFFFF",
+        "label": "Text"
+      },
+      {
+        "type": "color",
+        "messageKey": "InfoLineColor",
+        "defaultValue": "AAAAAA",
+        "label": "Trennlinie"
+      }
+    ]
+  },
+  {
     "type": "submit",
     "defaultValue": "Speichern"
   }

@@ -25,8 +25,12 @@ bei :45 "VIERTEL VOR <Stunde>".
 Über die Pebble-App (Zahnrad am Watchface) lassen sich einstellen:
 
 - Farben für Hintergrund, Text und hervorgehobenen Text
-- Infozeile über dem Raster mit Datum und/oder Außentemperatur (°C oder °F).
-  Ist beides aus, verteilt sich das Raster auf die volle Höhe.
+- Optionale Kopfzeile "ES IST" im Raster-Stil
+- Infozeile über dem Raster mit Datum und/oder Außentemperatur (°C oder °F),
+  wahlweise im Buchstabenraster (ein Zeichen pro Feld) oder als Textzeile.
+  Die Textzeile ist ein eigener Balken mit Trennlinie, standardmäßig invertiert zum
+  Raster; Hintergrund, Text und Linie lassen sich auch einzeln einstellen.
+  Ist alles aus, verteilt sich das Raster auf die volle Höhe.
 
 Die Temperatur holt das Handy alle 30 Minuten über seinen Standort von
 [open-meteo.com](https://open-meteo.com) (kein API-Key nötig).
@@ -38,6 +42,8 @@ Die Temperatur holt das Handy alle 30 Minuten über seinen Standort von
 - `src/c/wortuhr.c` — Pebble-App: Fenster, Font, Rendering, Minuten-Tick, Einstellungen.
 - `src/pkjs/index.js` — Handy-Seite: Einstellungsseite und Wetterabfrage.
 - `src/pkjs/config.js` — Aufbau der Einstellungsseite.
+- `src/pkjs/config-custom.js` — Blendet auf der Einstellungsseite die Textzeilen-Farben
+  nur ein, wenn sie gebraucht werden.
 - `src/pkjs/clay.js` — [Clay](https://github.com/pebble/clay) 1.0.4, eingebettet statt per npm,
   weil das npm-Paket flint nicht als Plattform kennt (und dort den Build abbricht).
   Angepasst: flint bekommt wie aplite/diorite den Schwarzweiß-Farbwähler.

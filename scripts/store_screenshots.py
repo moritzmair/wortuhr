@@ -39,7 +39,24 @@ VARIANTS = [
         text="PBL_IF_COLOR_ELSE(GColorMayGreen, GColorBlack)",
         highlight="GColorWhite",
         show_date="true", show_temp="true", show_es_ist="false", info_grid_style="false")),
+    ("5_textzeile_eigene_farben", "12:05:00", dict(
+        background="GColorWhite",
+        text="PBL_IF_COLOR_ELSE(GColorLightGray, GColorWhite)",
+        highlight="GColorBlack",
+        show_date="true", show_temp="true", show_es_ist="true", info_grid_style="false",
+        info_custom_colors="true",
+        info_background="PBL_IF_COLOR_ELSE(GColorDarkCandyAppleRed, GColorBlack)",
+        info_text="GColorWhite",
+        info_line="PBL_IF_COLOR_ELSE(GColorChromeYellow, GColorBlack)")),
 ]
+
+# Felder, die eine Variante nicht setzt
+BASE = dict(
+    info_custom_colors="false",
+    info_background="GColorBlack",
+    info_text="GColorWhite",
+    info_line="PBL_IF_COLOR_ELSE(GColorLightGray, GColorWhite)",
+)
 
 
 def run(*cmd, cwd):
@@ -48,7 +65,7 @@ def run(*cmd, cwd):
 
 def patch_source(path, settings):
     src = open(path, encoding="utf-8").read()
-    body = "".join(f"  s_settings.{k} = {v};\n" for k, v in settings.items())
+    body = "".join(f"  s_settings.{k} = {v};\n" for k, v in {**BASE, **settings}.items())
     body += "  s_settings.fahrenheit = false;\n  s_temp = 18;\n  s_has_temp = true;\n"
     src, n = re.subn(r"(static void default_settings\(void\) \{\n).*?(\n\})",
                      lambda m: m.group(1) + body.rstrip("\n") + m.group(2), src, flags=re.S)

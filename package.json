@@ -32,7 +32,11 @@
       "Temperature",
       "RequestWeather",
       "ShowEsIst",
-      "InfoGridStyle"
+      "InfoGridStyle",
+      "InfoCustomColors",
+      "InfoBackgroundColor",
+      "InfoTextColor",
+      "InfoLineColor"
     ],
     "resources": {
       "media": []

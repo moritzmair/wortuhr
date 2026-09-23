@@ -1,6 +1,7 @@
 var Clay = require('./clay');
 var clayConfig = require('./config');
-var clay = new Clay(clayConfig);
+var clayCustom = require('./config-custom');
+var clay = new Clay(clayConfig, clayCustom);
 
 function fetchWeather(fahrenheit) {
   navigator.geolocation.getCurrentPosition(function(pos) {

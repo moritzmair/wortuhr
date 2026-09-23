@@ -5,6 +5,7 @@
 #define SETTINGS_KEY 1
 #define TEMPERATURE_KEY 2
 #define WEATHER_INTERVAL_MIN 30
+#define INFO_LINE_WIDTH 2
 
 typedef struct {
   GColor background;
@@ -17,6 +18,11 @@ typedef struct {
   // die fehlenden Felder behalten dann ihren Default.
   bool show_es_ist;
   bool info_grid_style;
+  // Farben der Infozeile im Textmodus; ohne eigene Farben invertiert zum Raster.
+  bool info_custom_colors;
+  GColor info_background;
+  GColor info_text;
+  GColor info_line;
 } Settings;
 
 static Settings s_settings;
@@ -38,6 +44,10 @@ static void default_settings(void) {
   s_settings.fahrenheit = false;
   s_settings.show_es_ist = false;
   s_settings.info_grid_style = true;
+  s_settings.info_custom_colors = false;
+  s_settings.info_background = GColorBlack;
+  s_settings.info_text = GColorWhite;
+  s_settings.info_line = PBL_IF_COLOR_ELSE(GColorLightGray, GColorWhite);
 }
 
 static void load_settings(void) {
@@ -138,7 +148,8 @@ static void draw_info_row_grid(GContext *ctx, const GridRow *row,
   }
 }
 
-static void draw_info_row(GContext *ctx, const GridRow *row) {
+// `bar` ist der Bereich vom oberen Rand bis zur Unterkante der Infozeile.
+static void draw_info_row(GContext *ctx, const GridRow *row, GRect bar) {
   static const char * const weekdays[] = {"SO", "MO", "DI", "MI", "DO", "FR", "SA"};
   const char *weekday = "";
   char day_month[24] = "";
@@ -159,7 +170,22 @@ static void draw_info_row(GContext *ctx, const GridRow *row) {
     return;
   }
 
-  // Fließtext, innerhalb der äußeren Buchstabenspalten, damit er bündig mit dem Raster ist.
+  // Textmodus: eigener Balken mit Trennlinie, damit sich die Zeile vom Raster abhebt.
+  GColor bar_background = s_settings.highlight;
+  GColor bar_text = s_settings.background;
+  GColor bar_line = s_settings.text;
+  if (s_settings.info_custom_colors) {
+    bar_background = s_settings.info_background;
+    bar_text = s_settings.info_text;
+    bar_line = s_settings.info_line;
+  }
+  graphics_context_set_fill_color(ctx, bar_background);
+  graphics_fill_rect(ctx, bar, 0, GCornerNone);
+  graphics_context_set_fill_color(ctx, bar_line);
+  graphics_fill_rect(ctx, GRect(bar.origin.x, bar.origin.y + bar.size.h - INFO_LINE_WIDTH,
+                                bar.size.w, INFO_LINE_WIDTH), 0, GCornerNone);
+
+  // Text innerhalb der äußeren Buchstabenspalten, damit er bündig mit dem Raster ist.
   char date[32] = "";
   if (day_month[0]) {
     snprintf(date, sizeof(date), "%s %s.", weekday, day_month);
@@ -168,10 +194,13 @@ static void draw_info_row(GContext *ctx, const GridRow *row) {
     strcat(temp, "°");
   }
   int inset = row->cell_w / 4;
-  GRect text_row = GRect(row->origin.origin.x + inset, row->origin.origin.y,
+  // Nach oben schieben, damit der Text mittig im Balken (inkl. oberem Rand) über der
+  // Linie steht statt auf ihr.
+  int lift = INFO_LINE_WIDTH + (bar.size.h - row->cell_h) / 2;
+  GRect text_row = GRect(row->origin.origin.x + inset, row->origin.origin.y - lift,
                          row->cell_w * WC_COLS - 2 * inset, row->cell_h);
 
-  graphics_context_set_text_color(ctx, s_settings.highlight);
+  graphics_context_set_text_color(ctx, bar_text);
   if (date[0] && temp[0]) {
     graphics_draw_text(ctx, date, s_font, text_row, GTextOverflowModeTrailingEllipsis,
                        GTextAlignmentLeft, NULL);
@@ -205,7 +234,7 @@ static void grid_update_proc(Layer *layer, GContext *ctx) {
   GridRow row = { GRect(pad_x, pad_y + text_dy, 0, 0), cell_w, cell_h };
 
   if (info) {
-    draw_info_row(ctx, &row);
+    draw_info_row(ctx, &row, GRect(0, 0, bounds.size.w, pad_y + cell_h));
     row.origin.origin.y += cell_h;
   }
 
@@ -263,6 +292,22 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
   }
   if ((t = dict_find(iter, MESSAGE_KEY_InfoGridStyle))) {
     s_settings.info_grid_style = t->value->int32 == 1;
+    settings_changed = true;
+  }
+  if ((t = dict_find(iter, MESSAGE_KEY_InfoCustomColors))) {
+    s_settings.info_custom_colors = t->value->int32 == 1;
+    settings_changed = true;
+  }
+  if ((t = dict_find(iter, MESSAGE_KEY_InfoBackgroundColor))) {
+    s_settings.info_background = GColorFromHEX(t->value->int32);
+    settings_changed = true;
+  }
+  if ((t = dict_find(iter, MESSAGE_KEY_InfoTextColor))) {
+    s_settings.info_text = GColorFromHEX(t->value->int32);
+    settings_changed = true;
+  }
+  if ((t = dict_find(iter, MESSAGE_KEY_InfoLineColor))) {
+    s_settings.info_line = GColorFromHEX(t->value->int32);
     settings_changed = true;
   }
   if ((t = dict_find(iter, MESSAGE_KEY_ShowDate))) {
