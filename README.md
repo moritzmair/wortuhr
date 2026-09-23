@@ -1,15 +1,14 @@
 # Wortuhr
 
 Ein deutsches Wortuhr-Watchface (QLOCKTWO-Stil) für Pebble. Statt Ziffern leuchten
-im 11×10-Buchstabenraster genau die Wörter auf, die die aktuelle Zeit als Satz ergeben:
+im 11×9-Buchstabenraster genau die Wörter auf, die die aktuelle Zeit als Satz ergeben:
 
-    18:43  ->  ES IST ZWANZIG VOR SIEBEN
+    18:43  ->  ZWANZIG VOR SIEBEN
 
 ## Raster
 
-    E S K I S T A F Ü N F
     Z E H N Z W A N Z I G
-    D R E I V I E R T E L
+    F Ü N F V I E R T E L
     V O R F U N K N A C H
     H A L B A E L F Ü N F
     E I N S X A M Z W E I
@@ -18,14 +17,30 @@ im 11×10-Buchstabenraster genau die Wörter auf, die die aktuelle Zeit als Satz
     S I E B E N Z W Ö L F
     Z E H N E U N K U H R
 
-Die Zeit wird auf 5 Minuten abgerundet. Bei :45 wird die süddeutsche Form
-"DREIVIERTEL <Stunde>" benutzt, bei :15 "VIERTEL NACH <Stunde>".
+Die Zeit wird auf 5 Minuten abgerundet. Bei :15 heißt es "VIERTEL NACH <Stunde>",
+bei :45 "VIERTEL VOR <Stunde>".
+
+## Einstellungen
+
+Über die Pebble-App (Zahnrad am Watchface) lassen sich einstellen:
+
+- Farben für Hintergrund, Text und hervorgehobenen Text
+- Infozeile über dem Raster mit Datum und/oder Außentemperatur (°C oder °F).
+  Ist beides aus, verteilt sich das Raster auf die volle Höhe.
+
+Die Temperatur holt das Handy alle 30 Minuten über seinen Standort von
+[open-meteo.com](https://open-meteo.com) (kein API-Key nötig).
 
 ## Dateien
 
 - `src/c/wordclock.h` / `wordclock.c` — Die Wort-Logik: welches Feld leuchtet wann.
   Hängt bewusst nicht von `pebble.h` ab, damit sie sich nativ testen lässt.
-- `src/c/wortuhr.c` — Pebble-App: Fenster, Font, Rendering, Minuten-Tick.
+- `src/c/wortuhr.c` — Pebble-App: Fenster, Font, Rendering, Minuten-Tick, Einstellungen.
+- `src/pkjs/index.js` — Handy-Seite: Einstellungsseite und Wetterabfrage.
+- `src/pkjs/config.js` — Aufbau der Einstellungsseite.
+- `src/pkjs/clay.js` — [Clay](https://github.com/pebble/clay) 1.0.4, eingebettet statt per npm,
+  weil das npm-Paket flint und gabbro nicht als Plattform kennt (und dort den Build abbricht).
+  Angepasst: flint bekommt wie aplite/diorite den Schwarzweiß-Farbwähler.
 
 ## Bauen & testen
 
@@ -42,6 +57,14 @@ Logik gegen alle 288 Fünf-Minuten-Schritte prüfen:
     /tmp/wc_test
 
 ## Auf die echte Uhr
+
+Jeder Push auf `main` baut per GitHub Actions die `.pbw` und legt sie hier ab:
+
+    https://github.com/moritzmair/wortuhr/releases/latest/download/wortuhr.pbw
+
+Den Link auf dem Handy öffnen, die Datei mit der Pebble-App öffnen, fertig.
+
+Lokal geht es auch:
 
 `pebble build` legt `build/wortuhr.pbw` an. Entweder über die Developer Connection
 der Pebble-App installieren:

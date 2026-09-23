@@ -3,9 +3,9 @@
 #include <stdbool.h>
 
 #define WC_COLS 11
-#define WC_ROWS 10
+#define WC_ROWS 9
 
-// Deutsches Wortuhr-Raster (QLOCKTWO-Layout).
+// Deutsches Wortuhr-Raster (QLOCKTWO-Layout, ohne die "ES IST"-Zeile).
 // Jede Zelle ist ein eigener String, damit Umlaute (2 Byte in UTF-8) sauber bleiben.
 extern const char * const wc_grid[WC_ROWS][WC_COLS];
 

@@ -1,0 +1,50 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Pebble-Tool und SDK installieren
+        run: |
+          uv tool install pebble-tool
+          pebble sdk install latest
+
+      - name: Wortlogik testen
+        run: |
+          cc -std=c11 -Wall -Wextra -Werror -I src/c -o wc_test test/wc_test.c src/c/wordclock.c
+          ./wc_test > /dev/null
+
+      - name: Bauen
+        run: pebble build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wortuhr
+          path: build/wortuhr.pbw
+
+      # Rollierendes Release, damit die .pbw immer unter derselben URL liegt:
+      # https://github.com/<owner>/<repo>/releases/latest/download/wortuhr.pbw
+      - name: Release aktualisieren
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --cleanup-tag --yes || true
+          gh release create latest build/wortuhr.pbw \
+            --target "$GITHUB_SHA" \
+            --title "Wortuhr (${GITHUB_SHA::7})" \
+            --notes "Automatisch gebaut aus ${GITHUB_SHA}." \
+            --latest

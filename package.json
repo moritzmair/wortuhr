@@ -25,10 +25,21 @@
       "watchface": true
     },
     "messageKeys": [
-      "dummy"
+      "BackgroundColor",
+      "TextColor",
+      "HighlightColor",
+      "ShowDate",
+      "ShowTemp",
+      "Fahrenheit",
+      "Temperature",
+      "RequestWeather"
     ],
     "resources": {
       "media": []
-    }
+    },
+    "capabilities": [
+      "location",
+      "configurable"
+    ]
   }
 }
