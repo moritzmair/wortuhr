@@ -15,7 +15,7 @@ import tempfile
 import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PLATFORMS = ["aplite", "basalt", "diorite", "emery"]
+PLATFORMS = ["aplite", "basalt", "diorite", "emery", "flint"]
 
 # name, Uhrzeit, Einstellungen (C-Ausdrücke)
 VARIANTS = [
